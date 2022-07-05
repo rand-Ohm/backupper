@@ -1,0 +1,6 @@
+Use .pyw or run it using pythonw.exe
+This will cause Windows to link it against its GUI subsystem
+and will not create console output window.
+Thanks to this we can now create a scheduled task for it and 
+console window will not appear for a second while the 
+program works.
