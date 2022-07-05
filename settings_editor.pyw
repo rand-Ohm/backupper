@@ -7,9 +7,7 @@ from tkinter import filedialog
 import datetime
 import os
 import subprocess
-from tkinter import dialog
 from tkinter import messagebox
-import locale
 
 CFG_PATH = "cfg.json"
 TASK_NAME = "RunBackuper"
