@@ -35,8 +35,10 @@ def bckup_folder(path: str, zip: zipfile.ZipFile):
         for filename in filenames:
             full_path = os.path.join(dirpath, filename)
             full_path = os.path.realpath(full_path)
-            print(full_path)
-            zip.write(full_path, full_path.replace(':', ''))
+            try:
+                zip.write(full_path, full_path.replace(':', ''))
+            except PermissionError as err:
+                sys.stderr.write(str(err) + "\n")
 
 def write_cfg():
     global FILE_LIST, FOLDER_LIST, MAX_STORED_BACKUPS
@@ -59,7 +61,7 @@ def load_cfg():
     MAX_STORED_BACKUPS = data['max_stored_backups']
 
 def create_zip(name: str) -> zipfile.ZipFile:
-    zfile = zipfile.ZipFile(os.path.join(BACKUP_PATH, name), 'w', zipfile.ZIP_STORED)
+    zfile = zipfile.ZipFile(os.path.join(BACKUP_PATH, name), 'w', zipfile.ZIP_LZMA)
     return zfile
 
 def close_zip(zip: zipfile.ZipFile):
