@@ -8,6 +8,9 @@ import datetime
 import os
 import subprocess
 from tkinter import messagebox
+from tkinter.dialog import Dialog
+
+from backuper import BACKUP_PATH
 
 CFG_PATH = "cfg.json"
 TASK_NAME = "RunBackuper"
@@ -58,19 +61,66 @@ def write_cfg(data):
     json.dump(data, file)
     file.close()
 
+class RestoreDialog:
+    def __init__(self, master) -> None:
+        self.master = master
+        self.selected = ""
+        self.dlg = Toplevel(self.master)
+        self.dlg.title("Restore Files")
+        #self.dlg.geometry("300x200+0+0")
+        self.dlg.resizable(FALSE, FALSE)
+        frame = Frame(self.dlg)
+        frame.pack(fill=BOTH, expand=TRUE)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
+
+        ttk.Label(frame, text="WARNING!\nRestoring will remove the currently stored files!\n\nSelect backup:").grid(column=0, row=0, columnspan=2, sticky="NEWS")
+        
+        backups = []
+        for _,_, filenames in os.walk(BACKUP_PATH):
+            backups = [filename for filename in filenames if filename.endswith(".zip")]
+            break
+        self.listbox = Listbox(frame, listvariable=StringVar(value=backups))
+        self.listbox.grid(column=0,row=1, columnspan=2, sticky="NEWS")
+
+        vscrlbar = ttk.Scrollbar(frame, orient='vertical', command=self.listbox.yview)
+        self.listbox.configure(yscrollcommand=vscrlbar.set)
+        vscrlbar.grid(column=0, row=1, columnspan=2, sticky="ENS")
+        
+        ttk.Button(frame, text="Restore", command=self.select).grid(column=0,row=2, sticky="NEWS")
+        ttk.Button(frame, text="Cancel", command=self.dismiss).grid(column=1,row=2, sticky="NEWS")
+
+        self.dlg.protocol("WM_DELETE_WINDOW", self.dismiss) # intercept close button
+        self.dlg.transient(self.master)   # dialog window is related to main
+    
+    def show(self):
+        self.dlg.wait_visibility() # can't grab until window appears, so we wait
+        self.dlg.grab_set()        # ensure all input goes to our window
+        self.dlg.wait_window()     # block until window is destroyed
+        return self.selected
+
+    def dismiss (self):
+        self.dlg.grab_release()
+        self.dlg.destroy()
+
+    def select(self):
+        try:
+            self.selected = self.listbox.selection_get()
+            self.dlg.grab_release()
+            self.dlg.destroy()
+        except TclError as err:
+            messagebox.showinfo("Restore Backup", "Select what backup to restore.")
+
 class App(Frame):
     def __init__(self, master, cfg):
         self.master = master
         self.cfg = cfg
         Frame.__init__(self, master)
+        self.master.title("Backuper Config Editor")
         self.pack(fill='both', expand=True)
-
         self.create_widgets()
 
     def create_widgets(self):
-        buttonsFrame = Frame(self)
-        buttonsFrame.grid(column=0, row=0, sticky="EW")
-
         folderButtons = Frame(self)
         folderButtons.grid(column=1, row=2, sticky="N")
         self.bAddFolder = ttk.Button(folderButtons, text="+", width=4)
@@ -84,15 +134,19 @@ class App(Frame):
         self.bAddFile.pack(side=TOP)
         self.bRemoveFile = ttk.Button(fileButtons, text="-", width=4)
         self.bRemoveFile.pack(side=TOP)
-
+        
+        buttonsFrame = Frame(self)
+        buttonsFrame.grid(column=0, row=0, sticky="EW")
         self.bCreateTask = ttk.Button(buttonsFrame, text="Create Task")
         self.bCreateTask.pack(side=LEFT)
-
         self.bRemoveTask = ttk.Button(buttonsFrame, text="Remove Task")
         self.bRemoveTask.pack(side=LEFT)
-
         self.bSaveConfig = ttk.Button(buttonsFrame, text="Save Config")
         self.bSaveConfig.pack(side=LEFT)
+        self.bCreateBackup = ttk.Button(buttonsFrame, text="Create Backup")
+        self.bCreateBackup.pack(side=LEFT)
+        self.bRestoreBackup = ttk.Button(buttonsFrame, text="Restore")
+        self.bRestoreBackup.pack(side=LEFT)
         
         self.treeFile = ttk.Treeview(self, show='tree')
         self.treeFolder = ttk.Treeview(self, show='tree')
@@ -129,6 +183,8 @@ class App(Frame):
         self.bRemoveFolder.bind("<Button>", self.remove_folder)
         self.bRemoveTask.bind("<Button>", self.delete_windows_task)
         self.bSaveConfig.bind("<Button>", self.save_config)
+        self.bCreateBackup.bind("<Button>", self.create_backup)
+        self.bRestoreBackup.bind("<Button>", self.restore_backup)
 
         self.columnconfigure(0, weight=1) # column with treeview
         self.rowconfigure(1, weight=1) # row with treeview      
@@ -148,6 +204,8 @@ class App(Frame):
             self.treeFolder.insert('', 'end', path, text=path)
 
     def create_windows_task(self, event):
+        #TODO Show window with more options
+
         #NOTE Need to do xml file because there you can't set working directory when creating using command line 
         xml_file = open("task.xml", 'w')
         start_time = datetime.datetime.now()
@@ -203,6 +261,24 @@ class App(Frame):
         self.cfg['folders'] = folders
         self.cfg['max_stored_backups'] = self.vMaxBackups.get()
         write_cfg(self.cfg)
+
+    def create_backup(self,event):
+        result = subprocess.run('backuper.py -f', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode == 0:
+            messagebox.showinfo("Create Backup", "Success:\n" + result.stdout.decode("CP852"))
+        else:
+            #FIXME Fix the decoding here
+            messagebox.showerror("Create Backup", "ERROR:\n" + result.stderr.decode("CP852"))
+
+    def restore_backup(self,event):
+        selected = RestoreDialog(self).show()
+        if selected != "":
+            result = subprocess.run(f'backuper.py -r {os.path.join(BACKUP_PATH, selected)}', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if result.returncode == 0:
+                messagebox.showinfo("Restore Successful", "Success:\nRestored backup from " + selected)
+            else:
+                #FIXME Fix the decoding here
+                messagebox.showerror("Restore Failed", f"ERROR {result.returncode}\n" + result.stderr.decode("CP852"))
 
 if __name__ == "__main__":
     root = Tk()
