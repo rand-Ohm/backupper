@@ -1,5 +1,6 @@
 #! python3
 
+from multiprocessing.sharedctypes import Value
 from tkinter import *
 from tkinter import ttk
 import json
@@ -28,7 +29,7 @@ This sample schedules a task to start on a daily basis.
         <CalendarTrigger>
             <StartBoundary>{}</StartBoundary>
             <ScheduleByDay>
-                <DaysInterval>1</DaysInterval>
+                <DaysInterval>{}</DaysInterval>
             </ScheduleByDay>
         </CalendarTrigger>
     </Triggers>
@@ -106,10 +107,62 @@ class RestoreDialog:
     def select(self):
         try:
             self.selected = self.listbox.selection_get()
-            self.dlg.grab_release()
-            self.dlg.destroy()
+            self.dismiss()
         except TclError as err:
             messagebox.showinfo("Restore Backup", "Select what backup to restore.")
+
+class CreateTaskDialog:
+    def __init__(self, master) -> None:
+        self.master = master
+        self.data = None
+        self.dlg = Toplevel(self.master)
+        self.dlg.title("Create Task")
+        self.dlg.resizable(FALSE, FALSE)
+        frame = Frame(self.dlg)
+        frame.pack(fill=BOTH, expand=TRUE)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
+
+        ttk.Label(frame, text="Time:").grid(column=0, row=0, sticky="NEWS")
+        ttk.Label(frame, text="Interval (days):").grid(column=0, row=1, sticky="NEWS")
+
+        self.daysvar = IntVar(self.dlg, 1)
+        self.hourvar = IntVar(self.dlg, 18)
+        self.minutevar = IntVar(self.dlg, 00)
+
+        timeFrame = Frame(frame)
+        timeFrame.grid(column=1,row=0, sticky="NEWS")
+        ttk.Spinbox(timeFrame, from_ = 0, to=23, wrap=True,  textvariable=self.hourvar, state='readonly').pack(side=LEFT)
+        ttk.Label(timeFrame, text=":").pack(side=LEFT)
+        ttk.Spinbox(timeFrame, from_ = 0, to=59, wrap=True, textvariable=self.minutevar, state='readonly').pack(side=LEFT)
+
+        ttk.Spinbox(frame, from_=1, to=30, wrap=True, textvariable=self.daysvar, state='readonly').grid(column=1,row=1, sticky="NEWS")
+        ttk.Button(frame, text="Create", command=self.create).grid(column=0,row=2, sticky="NEWS")
+        ttk.Button(frame, text="Cancel", command=self.dismiss).grid(column=1,row=2, sticky="NEWS")
+
+        self.dlg.protocol("WM_DELETE_WINDOW", self.dismiss) # intercept close button
+        self.dlg.transient(self.master)   # dialog window is related to main
+    
+    def show(self):
+        self.dlg.wait_visibility() # can't grab until window appears, so we wait
+        self.dlg.grab_set()        # ensure all input goes to our window
+        self.dlg.wait_window()     # block until window is destroyed
+        return self.data
+
+    def dismiss (self):
+        self.dlg.grab_release()
+        self.dlg.destroy()
+
+    def create(self):
+        try:
+            self.data = {
+                "hour": self.hourvar.get(),
+                "minute": self.minutevar.get(),
+                "days_interval" : self.daysvar.get()
+            }
+            self.dismiss()
+        except TclError as err:
+            messagebox.showinfo("Create Task Error", str(err))
 
 class App(Frame):
     def __init__(self, master, cfg):
@@ -122,14 +175,14 @@ class App(Frame):
 
     def create_widgets(self):
         folderButtons = Frame(self)
-        folderButtons.grid(column=1, row=2, sticky="N")
+        folderButtons.grid(column=1, row=4, sticky="N")
         self.bAddFolder = ttk.Button(folderButtons, text="+", width=4)
         self.bAddFolder.pack(side=TOP)
         self.bRemoveFolder = ttk.Button(folderButtons, text="-", width=4)
         self.bRemoveFolder.pack(side=TOP)
 
         fileButtons = Frame(self)
-        fileButtons.grid(column=1, row=1, sticky="N")
+        fileButtons.grid(column=1, row=2, sticky="N")
         self.bAddFile = ttk.Button(fileButtons, text="+", width=4)
         self.bAddFile.pack(side=TOP)
         self.bRemoveFile = ttk.Button(fileButtons, text="-", width=4)
@@ -161,11 +214,13 @@ class App(Frame):
         self.treeFile.configure(yscrollcommand=vscrlbarFile.set)
         self.treeFolder.configure(yscrollcommand=vscrlbarFolder.set)
 
+        ttk.Label(self, text="Files:").grid(column=0, row=1, sticky="news")
+        ttk.Label(self, text="Folders:").grid(column=0, row=3, sticky="news")
         # XXX They are overlapping
-        self.treeFile.grid(column=0, row=1, sticky="news")
-        vscrlbarFile.grid(column=0,row=1, sticky="nse")
-        self.treeFolder.grid(column=0, row=2, sticky="news")
-        vscrlbarFolder.grid(column=0,row=2, sticky="nse")
+        self.treeFile.grid(column=0, row=2, sticky="news")
+        vscrlbarFile.grid(column=0,row=2, sticky="nse")
+        self.treeFolder.grid(column=0, row=4, sticky="news")
+        vscrlbarFolder.grid(column=0,row=4, sticky="nse")
 
         # Create the application variable.
         self.vMaxBackups = IntVar()
@@ -204,21 +259,22 @@ class App(Frame):
             self.treeFolder.insert('', 'end', path, text=path)
 
     def create_windows_task(self, event):
-        #TODO Show window with more options
-
+        result = CreateTaskDialog(self).show()
+        if result is None:
+            return
         #NOTE Need to do xml file because there you can't set working directory when creating using command line 
         xml_file = open("task.xml", 'w')
         start_time = datetime.datetime.now()
-        start_time = start_time.replace(hour=18, minute=0, second=0, microsecond=0)
-        xml_file.write(XML_TASK_FORMAT.format(datetime.datetime.isoformat(start_time), "backuper.pyw", os.path.abspath(".")))
+        start_time = start_time.replace(hour=result['hour'], minute=result['minute'], second=0, microsecond=0)
+        xml_file.write(XML_TASK_FORMAT.format(datetime.datetime.isoformat(start_time), result['days_interval'], "backuper.pyw", os.path.abspath(".")))
         xml_file.close()
         result = subprocess.run(CREATE_TASK_COMMAND, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.remove("task.xml")
         if result.returncode == 0:
             messagebox.showinfo("Create Task", "Task Created:\n" + result.stdout.decode("CP852"))
         else:
             #FIXME Fix the decoding here
             messagebox.showerror("Create Task", "Cannot Create Task:\n" + result.stderr.decode("CP852"))
-        os.remove("task.xml")
 
 
     def delete_windows_task(self, event):

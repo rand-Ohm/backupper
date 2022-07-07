@@ -38,7 +38,8 @@ def bckup_folder(path: str, zip: zipfile.ZipFile):
             try:
                 zip.write(full_path, full_path.replace(':', ''))
             except PermissionError as err:
-                sys.stderr.write(str(err) + "\n")
+                #sys.stderr.write(str(err) + "\n") #DO NOT WRITE TO STDERR!!! IT CAUSES THE TASK TO BE KILLED
+                continue
 
 def write_cfg():
     global FILE_LIST, FOLDER_LIST, MAX_STORED_BACKUPS
@@ -159,13 +160,9 @@ def run():
 
     if FORCE_BACKUP:
         sys.stdout.write("Created backup in " + zipfilename)
-
     #Check if we need to delete old files
     backups = sorted(get_backups())
     delete_old_backups(backups)
-    #Update config
-    LAST_BACKUP = int(time.time())
-    write_cfg()
 
 if __name__ == "__main__":
     print(argv)
