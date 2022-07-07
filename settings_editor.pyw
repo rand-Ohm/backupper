@@ -1,6 +1,5 @@
 #! python3
 
-from multiprocessing.sharedctypes import Value
 from tkinter import *
 from tkinter import ttk
 import json
@@ -9,8 +8,7 @@ import datetime
 import os
 import subprocess
 from tkinter import messagebox
-from tkinter.dialog import Dialog
-
+import re
 from backuper import BACKUP_PATH
 
 CFG_PATH = "cfg.json"
@@ -96,6 +94,11 @@ class RestoreDialog:
     
     def show(self):
         self.dlg.wait_visibility() # can't grab until window appears, so we wait
+
+        master_width, master_height, x, y = re.split('x|\+|-',self.dlg.master.geometry())
+        width, height, _, _ = re.split('x|\+|-',self.dlg.geometry())
+        self.dlg.geometry("{}x{}{:+}{:+}".format(width, height, int(int(x) + int(master_width)/2 - int(width)/2), int(int(y) + int(master_height)/2 - int(height)/2)))
+
         self.dlg.grab_set()        # ensure all input goes to our window
         self.dlg.wait_window()     # block until window is destroyed
         return self.selected
@@ -145,6 +148,11 @@ class CreateTaskDialog:
     
     def show(self):
         self.dlg.wait_visibility() # can't grab until window appears, so we wait
+
+        master_width, master_height, x, y = re.split('x|\+|-',self.dlg.master.geometry())
+        width, height, _, _ = re.split('x|\+|-',self.dlg.geometry())
+        self.dlg.geometry("{}x{}{:+}{:+}".format(width, height, int(int(x) + int(master_width)/2 - int(width)/2), int(int(y) + int(master_height)/2 - int(height)/2)))
+
         self.dlg.grab_set()        # ensure all input goes to our window
         self.dlg.wait_window()     # block until window is destroyed
         return self.data
@@ -259,7 +267,7 @@ class App(Frame):
             self.treeFolder.insert('', 'end', path, text=path)
 
     def create_windows_task(self, event):
-        result = CreateTaskDialog(self).show()
+        result = CreateTaskDialog(self.master).show()
         if result is None:
             return
         #NOTE Need to do xml file because there you can't set working directory when creating using command line 
@@ -327,7 +335,7 @@ class App(Frame):
             messagebox.showerror("Create Backup", "ERROR:\n" + result.stderr.decode("CP852"))
 
     def restore_backup(self,event):
-        selected = RestoreDialog(self).show()
+        selected = RestoreDialog(self.master).show()
         if selected != "":
             result = subprocess.run(f'backuper.py -r {os.path.join(BACKUP_PATH, selected)}', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if result.returncode == 0:
