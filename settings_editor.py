@@ -8,10 +8,10 @@ import subprocess
 from tkinter import *
 from tkinter import filedialog, messagebox, ttk
 
-from backuper import BACKUP_PATH
+from backupper import BACKUP_PATH
 
 CFG_PATH = "cfg.json"
-TASK_NAME = "RunBackuper"
+TASK_NAME = "RunBackupper"
 XML_TASK_FORMAT = """<?xml version="1.0" ?>
 <!--
 This sample schedules a task to start on a daily basis.
@@ -20,7 +20,7 @@ This sample schedules a task to start on a daily basis.
     <RegistrationInfo>
         <Author>rand</Author>
         <Version>0.1.0</Version>
-        <Description>Backuper task.</Description>
+        <Description>Backupper task.</Description>
     </RegistrationInfo>
     <Triggers>
         <CalendarTrigger>
@@ -48,8 +48,8 @@ CREATE_TASK_COMMAND = 'schtasks /create /xml task.xml /tn \{}'.format(TASK_NAME)
 DELETE_TASK_COMMAND = 'schtasks /delete /tn \{} /f'.format(TASK_NAME)
 QUERY_TASK_COMMAND = 'schtasks /query /tn \{}'.format(TASK_NAME)
 
-BACKUPER_CMD = "backuper.py"
-BACKUPERW_CMD = "backuper.pyw"
+BACKUPPER_CMD = "backupper.py"
+BACKUPPERW_CMD = "backupper.pyw"
 
 def load_cfg():
     file = open(CFG_PATH, "r")
@@ -182,7 +182,7 @@ class App(Frame):
         self.master = master
         self.cfg = cfg
         Frame.__init__(self, master)
-        self.master.title("Backuper Config Editor")
+        self.master.title("Backupper Config Editor")
         self.pack(fill='both', expand=True)
         self.create_widgets()
 
@@ -279,7 +279,7 @@ class App(Frame):
         xml_file = open("task.xml", 'w')
         start_time = datetime.datetime.now()
         start_time = start_time.replace(hour=result['hour'], minute=result['minute'], second=0, microsecond=0)
-        xml_file.write(XML_TASK_FORMAT.format(datetime.datetime.isoformat(start_time), result['days_interval'], BACKUPERW_CMD, os.path.abspath(".")))
+        xml_file.write(XML_TASK_FORMAT.format(datetime.datetime.isoformat(start_time), result['days_interval'], BACKUPPERW_CMD, os.path.abspath(".")))
         xml_file.close()
         result = subprocess.run(CREATE_TASK_COMMAND, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         os.remove("task.xml")
@@ -332,7 +332,7 @@ class App(Frame):
         write_cfg(self.cfg)
 
     def create_backup(self,event):
-        result = subprocess.run(f'{BACKUPER_CMD} -f', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(f'{BACKUPPER_CMD} -f', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode == 0:
             messagebox.showinfo("Create Backup", "Success:\n" + result.stdout.decode("CP852"))
         else:
@@ -342,7 +342,7 @@ class App(Frame):
     def restore_backup(self,event):
         selected = RestoreDialog(self.master).show()
         if selected != "":
-            result = subprocess.run(f'{BACKUPER_CMD} -r {os.path.join(BACKUP_PATH, selected)}', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            result = subprocess.run(f'{BACKUPPER_CMD} -r {os.path.join(BACKUP_PATH, selected)}', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if result.returncode == 0:
                 messagebox.showinfo("Restore Successful", "Success:\nRestored backup from " + selected)
             else:

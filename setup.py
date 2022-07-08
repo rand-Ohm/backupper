@@ -1,6 +1,7 @@
 from distutils.core import setup
 import py2exe
 
+#run python setup.py py2exe
 #TODO Find a way to change BACKUPER_CMD and BACKUPERW_CMD in settings_editor to .exe when deploying
 
 includes = ["sys", "time", "zipfile", "json", "os", "re", "subprocess", "tkinter",
@@ -11,7 +12,7 @@ excludes = ["asyncio", "hashlib", "elementtree", "multiprocession", "overlapped"
 packages = []
 dll_excludes = []
 setup(windows=[
-    {'script': "backuper.py", "dest_base": "backuper"}, 
+    {'script': "backupper.py", "dest_base": "backupper"}, 
     {'script': "settings_editor.pyw"}],
     options={
         "py2exe":{

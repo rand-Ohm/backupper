@@ -2,3 +2,4 @@ cfg.json
 backup/
 __pycache__/
 dist/
+*.zip
