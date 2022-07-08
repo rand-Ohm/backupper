@@ -1,11 +1,11 @@
 #! python3
 
-import os
 import json
-from sys import argv
-import zipfile
-import time
+import os
 import sys
+import time
+import zipfile
+from sys import argv
 
 BACKUP_PATH = "backup"
 CFG_PATH = "cfg.json"
@@ -148,7 +148,7 @@ def run():
         if os.path.exists(os.path.join(BACKUP_PATH,zipfilename)):
             print(f"ZIP file for today already exists ({zipfilename})! Backup not required.")
             write_cfg()
-            exit(0)
+            sys.exit(0)
 
     zip = create_zip(zipfilename)
 
@@ -167,9 +167,9 @@ def run():
 if __name__ == "__main__":
     if len(argv) > 1 and argv[1] in ['-r', '--restore']:
         if len(argv) > 2:
-            exit(restore(argv[2]))
+            sys.exit(restore(argv[2]))
         else:
-            exit(ERROR_ARGUMENTS)
+            sys.exit(ERROR_ARGUMENTS)
     if len(argv) > 1 and argv[1] in ['-f', '--force']:
         FORCE_BACKUP = True
     run()
