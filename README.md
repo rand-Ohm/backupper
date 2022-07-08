@@ -1,8 +1,8 @@
-#Backupper
+# Backupper
 Backupper is a simple application that allows you to backup and restore files and folders.
 Create scheduled task to repeat the operation periodically.
 
-##Usage
+## Usage
 1. Run settings_editor.pyw (or settings_editor.exe).
 2. Add files and folders you want to backup using + buttons next to their respective lists.
 3. Set maximum amount of backups you want stored.
@@ -13,5 +13,5 @@ You can also create backup manually by pressing **Create Backup**.
 To restore saved backup press **Restore** and select zipfile with the date you want to use.
 All backups are stored in _backups_ folder. 
 
-###Warning
+### Warning
 There may be bugs. Use at your own risk.
