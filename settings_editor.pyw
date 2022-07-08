@@ -140,8 +140,11 @@ class CreateTaskDialog:
         ttk.Spinbox(timeFrame, from_ = 0, to=59, wrap=True, textvariable=self.minutevar, state='readonly').pack(side=LEFT)
 
         ttk.Spinbox(frame, from_=1, to=30, wrap=True, textvariable=self.daysvar, state='readonly').grid(column=1,row=1, sticky="NEWS")
-        ttk.Button(frame, text="Create", command=self.create).grid(column=0,row=2, sticky="NEWS")
-        ttk.Button(frame, text="Cancel", command=self.dismiss).grid(column=1,row=2, sticky="NEWS")
+
+        buttonFrame = Frame(frame)
+        buttonFrame.grid(column=0,row=2, columnspan=2)
+        ttk.Button(buttonFrame, text="Create", command=self.create).grid(column=0, row=0)
+        ttk.Button(buttonFrame, text="Cancel", command=self.dismiss).grid(column=1, row=0)
 
         self.dlg.protocol("WM_DELETE_WINDOW", self.dismiss) # intercept close button
         self.dlg.transient(self.master)   # dialog window is related to main
