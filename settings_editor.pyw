@@ -1,5 +1,6 @@
 #! python3
 
+from shutil import ExecError
 from tkinter import *
 from tkinter import ttk
 import json
@@ -348,7 +349,10 @@ class App(Frame):
                 messagebox.showerror("Restore Failed", f"ERROR {result.returncode}\n" + result.stderr.decode("CP852"))
 
 if __name__ == "__main__":
+    if os.path.exists(CFG_PATH):
+        cfg = load_cfg()
+    else:
+        cfg = {"files" : [], "folders": [], "max_stored_backups": 10}
     root = Tk()
-    cfg = load_cfg()
     myapp = App(root, cfg)
     myapp.mainloop()

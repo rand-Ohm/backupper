@@ -165,7 +165,6 @@ def run():
     delete_old_backups(backups)
 
 if __name__ == "__main__":
-    print(argv)
     if len(argv) > 1 and argv[1] in ['-r', '--restore']:
         if len(argv) > 2:
             exit(restore(argv[2]))
